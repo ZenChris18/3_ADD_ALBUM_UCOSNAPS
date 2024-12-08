@@ -88,27 +88,19 @@ function getUserByID($pdo, $username) {
 	}
 }
 
-function insertPhoto($pdo, $photo_name, $username, $description, $photo_id=null) {
+function insertPhotoWithAlbum($pdo, $photo_name, $username, $description, $album_id=null) {
 
-	if (empty($photo_id)) {
-		$sql = "INSERT INTO photos (photo_name, username, description) VALUES(?,?,?)";
-		$stmt = $pdo->prepare($sql);
-		$executeQuery = $stmt->execute([$photo_name, $username, $description]);
+    $sql = "INSERT INTO photos (photo_name, username, description, album_id) VALUES(?,?,?,?)";
+    $stmt = $pdo->prepare($sql);
+    $executeQuery = $stmt->execute([$photo_name, $username, $description, $album_id]);
 
-		if ($executeQuery) {
-			return true;
-		}
-	}
-	else {
-		$sql = "UPDATE photos SET photo_name = ?, description = ? WHERE photo_id = ?";
-		$stmt = $pdo->prepare($sql);
-		$executeQuery = $stmt->execute([$photo_name, $description, $photo_id]);
+    if ($executeQuery) {
+        return true;
+    }
 
-		if ($executeQuery) {
-			return true;
-		}
-	}
+    return false;
 }
+
 
 function getAllPhotos($pdo, $username=null) {
 	if (empty($username)) {
@@ -205,4 +197,70 @@ function getAllPhotosJson($pdo) {
 			return $stmt->fetchAll();
 		}
 	}
+}
+
+// new codes
+// Function to create a new album
+function createAlbum($pdo, $albumName, $username) {
+    $sql = "INSERT INTO albums (album_name, username) VALUES (?, ?)";
+    $stmt = $pdo->prepare($sql);
+    return $stmt->execute([$albumName, $username]);
+}
+
+// Function to get all albums of a user
+function getAllAlbums($pdo, $username) {
+    $sql = "SELECT * FROM albums WHERE username = ? ORDER BY date_added DESC";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$username]);
+    return $stmt->fetchAll();
+}
+
+// Function to edit album name
+function updateAlbumName($pdo, $album_id, $new_name) {
+    $sql = "UPDATE albums SET album_name = ? WHERE album_id = ?";
+    $stmt = $pdo->prepare($sql);
+    return $stmt->execute([$new_name, $album_id]);
+}
+
+function updateAlbum($pdo, $albumName, $album_id) {
+    $sql = "UPDATE albums SET album_name = ? WHERE album_id = ?";
+    $stmt = $pdo->prepare($sql);
+    return $stmt->execute([$albumName, $album_id]);
+}
+
+// Function to delete an album
+function deleteAlbum($pdo, $album_id) {
+    // Delete photos associated with this album
+    $sql = "DELETE FROM photos WHERE album_id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$album_id]);
+
+    // Now delete the album
+    $sql = "DELETE FROM albums WHERE album_id = ?";
+    $stmt = $pdo->prepare($sql);
+    return $stmt->execute([$album_id]);
+}
+
+
+// Function to associate a photo with an album
+function addPhotoToAlbum($pdo, $album_id, $photo_id) {
+    $sql = "INSERT INTO album_photos (album_id, photo_id) VALUES (?, ?)";
+    $stmt = $pdo->prepare($sql);
+    return $stmt->execute([$album_id, $photo_id]);
+}
+
+function getUserAlbums($pdo, $username) {
+    $sql = "SELECT * FROM albums WHERE username = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$username]);
+    
+    return $stmt->fetchAll();
+}
+
+function getAlbumById($pdo, $album_id) {
+    $stmt = $pdo->prepare("SELECT * FROM albums WHERE album_id = :album_id");
+    $stmt->bindParam(':album_id', $album_id, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return $stmt->fetch(PDO::FETCH_ASSOC);
 }
